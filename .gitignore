@@ -2,4 +2,4 @@
 modules
 terraform.tfstate
 terraform.tfvars
-.terraform.lock.hck
+.terraform.lock.hcl
