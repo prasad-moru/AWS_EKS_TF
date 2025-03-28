@@ -1,5 +1,5 @@
 .terraform
-*modules
-terraform.tfstate*
+modules
+terraform.tfstate
 terraform.tfvars
 .terraform.lock.hck
