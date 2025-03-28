@@ -239,7 +239,7 @@ Key components:
 
 1. Clone this repository:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/prasad-moru/AWS_EKS_TF.git
    cd <repository-directory>
    ```
 
@@ -248,7 +248,7 @@ Key components:
    terraform init
    ```
 
-3. Create a `terraform.tfvars` file with your specific values:
+3. Create a `terraform.tfvars` file with your specific .values:
    ```hcl
    aws_access_key = "your-access-key"
    aws_secret_key = "your-secret-key"
