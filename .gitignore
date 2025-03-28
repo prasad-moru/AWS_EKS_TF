@@ -1,5 +1,4 @@
 .terraform
-modules
 terraform.tfstate
 terraform.tfvars
 .terraform.lock.hcl
