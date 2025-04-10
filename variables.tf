@@ -112,3 +112,9 @@ variable "additional_tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "enable_cloudwatch_agent" {
+  description = "Enable CloudWatch agent on nodes for enhanced monitoring"
+  type        = bool
+  default     = false
+}

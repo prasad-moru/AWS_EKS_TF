@@ -85,3 +85,21 @@ resource "aws_iam_role_policy_attachment" "node_CloudWatchAgentServerPolicy" {
   policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
   role       = aws_iam_role.node.name
 }
+
+# OIDC Provider for Service Account Federation
+data "tls_certificate" "eks" {
+  url = var.cluster_identity_oidc_issuer
+}
+
+resource "aws_iam_openid_connect_provider" "eks" {
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = [data.tls_certificate.eks.certificates[0].sha1_fingerprint]
+  url             = var.cluster_identity_oidc_issuer
+
+  tags = merge(
+    var.tags,
+    {
+      Name = "${var.cluster_name}-eks-oidc"
+    }
+  )
+}

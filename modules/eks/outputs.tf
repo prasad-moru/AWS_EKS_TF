@@ -28,37 +28,7 @@ output "cluster_security_group_id" {
   value       = aws_security_group.cluster.id
 }
 
-output "node_security_group_id" {
-  description = "The ID of the node security group"
-  value       = aws_security_group.nodes.id
-}
-
-output "node_group_name" {
-  description = "The name of the EKS node group"
-  value       = aws_eks_node_group.this.node_group_name
-}
-
-output "node_group_arn" {
-  description = "The ARN of the EKS node group"
-  value       = aws_eks_node_group.this.arn
-}
-
-output "node_role_arn" {
-  description = "The ARN of the IAM role for EKS nodes"
-  value       = aws_iam_role.node.arn
-}
-
-output "oidc_provider_arn" {
-  description = "The ARN of the OIDC provider"
-  value       = aws_iam_openid_connect_provider.eks.arn
-}
-
-output "oidc_provider_url" {
-  description = "The URL of the OIDC provider"
-  value       = aws_iam_openid_connect_provider.eks.url
-}
-
-output "cluster_iam_role_arn" {
-  description = "The ARN of the IAM role for the EKS cluster"
-  value       = aws_iam_role.cluster.arn
+output "cluster_identity_oidc_issuer" {
+  description = "The OIDC Identity issuer for the cluster"
+  value       = aws_eks_cluster.this.identity[0].oidc[0].issuer
 }
