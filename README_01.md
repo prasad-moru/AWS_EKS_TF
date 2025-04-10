@@ -89,6 +89,17 @@ The infrastructure is built using a modular approach with the following componen
 
 ## Module Overview
 
+```
+
+aws dynamodb create-table \
+  --table-name terraform-state-lock \
+  --attribute-definitions AttributeName=LockID,AttributeType=S \
+  --key-schema AttributeName=LockID,KeyType=HASH \
+  --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5 \
+  --region us-east-1
+```  
+
+
 ### VPC Module
 
 Creates a VPC with public and private subnets across multiple availability zones, with internet gateway, NAT gateway, and appropriate route tables.
