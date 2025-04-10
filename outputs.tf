@@ -90,3 +90,25 @@ output "configure_kubectl" {
   description = "Command to configure kubectl to connect to the EKS cluster"
   value       = "aws eks update-kubeconfig --name ${module.eks.cluster_name} --region ${var.region}"
 }
+
+# Add these at the end of your outputs.tf file
+
+# ECR Outputs
+output "ecr_repository_urls" {
+  description = "URLs of the created ECR repositories"
+  value       = module.ecr.repository_urls
+}
+
+output "ecr_repository_arns" {
+  description = "ARNs of the created ECR repositories"
+  value       = module.ecr.repository_arns
+}
+
+output "ecr_push_commands" {
+  description = "Commands to authenticate Docker to ECR and push images"
+  value = {
+    authenticate = "aws ecr get-login-password --region ${var.region} | docker login --username AWS --password-stdin ${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com"
+    for repo in var.ecr_repository_names : 
+      "push_${repo}" => "docker push ${module.ecr.repository_urls[repo]}:latest"
+  }
+}

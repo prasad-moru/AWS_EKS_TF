@@ -308,6 +308,64 @@ resource "aws_eks_node_group" "this" {
   }
 }
 
+# Add this after the ALB Ingress Controller module in your main.tf
+
+# Module: ECR - Create repositories and grant node access
+module "ecr" {
+  source = "./modules/ecr"
+  
+  repository_names     = var.ecr_repository_names
+  image_tag_mutability = var.ecr_image_tag_mutability
+  scan_on_push         = var.ecr_scan_on_push
+  enable_lifecycle_policy = var.ecr_enable_lifecycle_policy
+  max_image_count      = var.ecr_max_image_count
+  node_role_arn        = aws_iam_role.node.arn
+  
+  tags = merge(
+    local.eks_tags,
+    {
+      Name = "${local.name}-ecr"
+    }
+  )
+}
+
+# Additional policy for ECR access
+resource "aws_iam_role_policy_attachment" "node_AmazonECR_FullAccess" {
+  count      = var.ecr_full_access_from_nodes ? 1 : 0
+  policy_arn = "arn:aws:iam::aws:policy/AmazonECR-FullAccess"
+  role       = aws_iam_role.node.name
+}
+
+# If you want more restricted ECR access instead of full access,
+# you can use this custom policy instead
+resource "aws_iam_policy" "ecr_read_only" {
+  count       = var.ecr_full_access_from_nodes ? 0 : 1
+  name        = "${local.node_group_name}-ecr-read-only"
+  description = "Allows EKS nodes to pull images from ECR"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetAuthorizationToken"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "node_ecr_read_only" {
+  count      = var.ecr_full_access_from_nodes ? 0 : 1
+  policy_arn = aws_iam_policy.ecr_read_only[0].arn
+  role       = aws_iam_role.node.name
+}
+
 # Module: EBS CSI Driver - now using the OIDC provider we just created
 module "ebs_csi" {
   source = "./modules/ebs-csi"

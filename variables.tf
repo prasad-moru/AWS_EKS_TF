@@ -118,3 +118,42 @@ variable "enable_cloudwatch_agent" {
   type        = bool
   default     = false
 }
+
+# Add these at the end of your variables.tf file
+
+# ECR Configuration
+variable "ecr_repository_names" {
+  description = "List of ECR repository names to create"
+  type        = list(string)
+  default     = ["app", "nginx", "backend", "frontend"]
+}
+
+variable "ecr_image_tag_mutability" {
+  description = "The tag mutability setting for the repositories. Must be one of: MUTABLE or IMMUTABLE"
+  type        = string
+  default     = "MUTABLE"
+}
+
+variable "ecr_scan_on_push" {
+  description = "Indicates whether images are scanned after being pushed to the repository"
+  type        = bool
+  default     = true
+}
+
+variable "ecr_enable_lifecycle_policy" {
+  description = "Enable lifecycle policy for repositories"
+  type        = bool
+  default     = true
+}
+
+variable "ecr_max_image_count" {
+  description = "Maximum number of images to keep in each repository"
+  type        = number
+  default     = 30
+}
+
+variable "ecr_full_access_from_nodes" {
+  description = "Grant full ECR access to node groups (not recommended for production)"
+  type        = bool
+  default     = false
+}
