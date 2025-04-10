@@ -4,7 +4,7 @@ This repository contains Terraform code for deploying a production-ready Amazon 
 
 ## Architecture Overview
 
-![AWS EKS Architecture](architecture-diagram.png)
+![AWS EKS Architecture](aws_eks_cluster_tf.png)
 
 The infrastructure is built using a modular approach with the following components:
 
