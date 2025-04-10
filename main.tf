@@ -111,14 +111,54 @@ module "vpc" {
   tags                     = local.vpc_tags
 }
 
-# Module: EKS - using pre-created IAM roles
+# Create node security group first
+resource "aws_security_group" "nodes" {
+  name        = "${local.cluster_name}-node-sg"
+  description = "Security group for EKS worker nodes"
+  vpc_id      = module.vpc.vpc_id
+
+  tags = merge(
+    local.eks_tags,
+    {
+      Name = "${local.cluster_name}-node-sg"
+      "kubernetes.io/cluster/${local.cluster_name}" = "owned"
+    }
+  )
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_security_group_rule" "nodes_internal" {
+  description              = "Allow nodes to communicate with each other"
+  security_group_id        = aws_security_group.nodes.id
+  type                     = "ingress"
+  from_port                = 0
+  to_port                  = 65535
+  protocol                 = "-1"
+  source_security_group_id = aws_security_group.nodes.id
+}
+
+resource "aws_security_group_rule" "nodes_outbound" {
+  security_group_id = aws_security_group.nodes.id
+  type              = "egress"
+  from_port         = 0
+  to_port           = 0
+  protocol          = "-1"
+  cidr_blocks       = ["0.0.0.0/0"]
+  description       = "Allow all outbound traffic"
+}
+
+# Module: EKS - using pre-created IAM roles and security group
 module "eks" {
   source = "./modules/eks"
   
   depends_on = [
     module.vpc,
     aws_iam_role_policy_attachment.cluster_AmazonEKSClusterPolicy,
-    aws_iam_role_policy_attachment.cluster_AmazonEKSVPCResourceController
+    aws_iam_role_policy_attachment.cluster_AmazonEKSVPCResourceController,
+    aws_security_group.nodes
   ]
 
   cluster_name            = local.cluster_name
@@ -126,9 +166,9 @@ module "eks" {
   vpc_id                  = module.vpc.vpc_id
   private_subnet_ids      = module.vpc.private_subnet_ids
   public_subnet_ids       = module.vpc.public_subnet_ids
-  cluster_role_arn        = aws_iam_role.cluster.arn  # Use directly created role
-  # Node security group will be linked later
-  enable_core_addons     = false
+  cluster_role_arn        = aws_iam_role.cluster.arn
+  node_security_group_id  = aws_security_group.nodes.id
+  enable_core_addons      = false
   tags                    = local.eks_tags
 }
 
@@ -151,36 +191,7 @@ data "tls_certificate" "eks" {
   depends_on = [module.eks]
 }
 
-# Module: Node Group - use the pre-created IAM role
-module "node_group" {
-  source = "./modules/node-group"
-  
-  depends_on = [
-    module.eks,
-    aws_iam_role_policy_attachment.node_AmazonEKSWorkerNodePolicy,
-    aws_iam_role_policy_attachment.node_AmazonEKS_CNI_Policy,
-    aws_iam_role_policy_attachment.node_AmazonEC2ContainerRegistryReadOnly,
-    aws_iam_role_policy_attachment.node_AmazonSSMManagedInstanceCore
-  ]
-
-  cluster_name            = module.eks.cluster_name
-  node_group_name         = local.node_group_name
-  node_role_arn           = aws_iam_role.node.arn  # Use directly created role
-  subnet_ids              = module.vpc.private_subnet_ids
-  vpc_id                  = module.vpc.vpc_id
-  cluster_security_group_id = module.eks.cluster_security_group_id
-  
-  # Node group configuration
-  desired_size            = var.eks_node_desired_size
-  min_size                = var.eks_node_min_size
-  max_size                = var.eks_node_max_size
-  disk_size               = var.eks_node_disk_size
-  instance_types          = var.eks_node_instance_types
-  
-  tags                    = local.eks_tags
-}
-
-# Link the cluster to the node group security group
+# Connect the cluster security group to node security group
 resource "aws_security_group_rule" "cluster_to_nodes" {
   description              = "Allow cluster control plane to communicate with worker nodes"
   security_group_id        = module.eks.cluster_security_group_id
@@ -188,21 +199,124 @@ resource "aws_security_group_rule" "cluster_to_nodes" {
   from_port                = 443
   to_port                  = 443
   protocol                 = "tcp"
-  source_security_group_id = module.node_group.node_security_group_id
-  
-  depends_on = [module.eks, module.node_group]
+  source_security_group_id = aws_security_group.nodes.id
+  depends_on               = [module.eks]
+}
+
+resource "aws_security_group_rule" "nodes_cluster_inbound" {
+  description              = "Allow worker nodes to receive communication from cluster control plane"
+  security_group_id        = aws_security_group.nodes.id
+  type                     = "ingress"
+  from_port                = 1025
+  to_port                  = 65535
+  protocol                 = "tcp"
+  source_security_group_id = module.eks.cluster_security_group_id
+  depends_on               = [module.eks]
+}
+
+# Create launch template for node group
+resource "aws_launch_template" "eks_nodes" {
+  name_prefix = "${local.node_group_name}-"
+  description = "Launch template for EKS node group"
+
+  # Use custom block device mappings to improve performance
+  block_device_mappings {
+    device_name = "/dev/xvda"
+    
+    ebs {
+      volume_size           = var.eks_node_disk_size
+      volume_type           = "gp3"
+      iops                  = 3000
+      throughput            = 125
+      delete_on_termination = true
+    }
+  }
+
+  tag_specifications {
+    resource_type = "instance"
+    tags = merge(
+      local.eks_tags,
+      {
+        Name = "${local.node_group_name}-node"
+      }
+    )
+  }
+
+  tag_specifications {
+    resource_type = "volume"
+    tags = merge(
+      local.eks_tags,
+      {
+        Name = "${local.node_group_name}-volume"
+      }
+    )
+  }
+
+  tags = merge(
+    local.eks_tags,
+    {
+      Name = "${local.node_group_name}-launch-template"
+    }
+  )
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+# Create node group with the pre-created resources
+resource "aws_eks_node_group" "this" {
+  cluster_name    = module.eks.cluster_name
+  node_group_name = local.node_group_name
+  node_role_arn   = aws_iam_role.node.arn
+  subnet_ids      = module.vpc.private_subnet_ids
+
+  scaling_config {
+    desired_size = var.eks_node_desired_size
+    max_size     = var.eks_node_max_size
+    min_size     = var.eks_node_min_size
+  }
+
+  ami_type       = "AL2_x86_64"
+  capacity_type  = "ON_DEMAND"
+  instance_types = var.eks_node_instance_types
+
+  # Use launch template for disk size
+  launch_template {
+    id      = aws_launch_template.eks_nodes.id
+    version = aws_launch_template.eks_nodes.latest_version
+  }
+
+  depends_on = [
+    module.eks,
+    aws_iam_role_policy_attachment.node_AmazonEKSWorkerNodePolicy,
+    aws_iam_role_policy_attachment.node_AmazonEKS_CNI_Policy,
+    aws_iam_role_policy_attachment.node_AmazonEC2ContainerRegistryReadOnly,
+    aws_iam_role_policy_attachment.node_AmazonSSMManagedInstanceCore,
+    aws_security_group_rule.nodes_cluster_inbound
+  ]
+
+  tags = merge(
+    local.eks_tags,
+    {
+      Name = local.node_group_name
+    }
+  )
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # Module: EBS CSI Driver - now using the OIDC provider we just created
 module "ebs_csi" {
   source = "./modules/ebs-csi"
   
-  depends_on = [module.eks, aws_iam_openid_connect_provider.eks]
+  depends_on = [module.eks, aws_iam_openid_connect_provider.eks, aws_eks_node_group.this]
 
   cluster_name            = module.eks.cluster_name
   oidc_provider_arn       = aws_iam_openid_connect_provider.eks.arn
   oidc_provider_url       = aws_iam_openid_connect_provider.eks.url
-  ebs_csi_addon_version   = "v1.40.1-eksbuild.1"
 }
 
 # Module: ALB Ingress Controller - now using the OIDC provider we just created
@@ -210,7 +324,7 @@ module "alb_ingress" {
   source = "./modules/alb-ingress"
   count  = var.enable_alb_ingress ? 1 : 0
   
-  depends_on = [module.eks, aws_iam_openid_connect_provider.eks]
+  depends_on = [module.eks, aws_iam_openid_connect_provider.eks, aws_eks_node_group.this]
 
   cluster_name            = module.eks.cluster_name
   vpc_id                  = module.vpc.vpc_id

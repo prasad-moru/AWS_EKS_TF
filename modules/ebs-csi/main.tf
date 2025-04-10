@@ -71,5 +71,8 @@ resource "aws_eks_addon" "ebs_csi_driver" {
   addon_version            = var.ebs_csi_addon_version
   service_account_role_arn = aws_iam_role.ebs_csi_driver.arn
   
+  # Add conflict resolution
+  resolve_conflicts        = "OVERWRITE"
+  
   tags = merge(var.tags, { Name = "${var.cluster_name}-ebs-csi-addon" })
 }

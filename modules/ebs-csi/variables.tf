@@ -16,7 +16,7 @@ variable "oidc_provider_url" {
 variable "ebs_csi_addon_version" {
   description = "Version of the EBS CSI driver addon to use"
   type        = string
-  default     = "v1.23.0-eksbuild.1"
+  default     = "v1.40.1-eksbuild.1"
 }
 
 variable "enable_kms_encryption" {

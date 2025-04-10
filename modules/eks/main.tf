@@ -32,24 +32,25 @@ resource "aws_eks_cluster" "this" {
 resource "aws_eks_addon" "coredns" {
   count = var.enable_core_addons ? 1 : 0
   
-  cluster_name = aws_eks_cluster.this.name
-  addon_name   = "coredns"
-  addon_version = "v1.11.4-eksbuild.2" 
-  
+  cluster_name      = aws_eks_cluster.this.name
+  addon_name        = "coredns"
+  resolve_conflicts = "OVERWRITE"
 }
 
 resource "aws_eks_addon" "kube_proxy" {
   count = var.enable_core_addons ? 1 : 0
   
-  cluster_name = aws_eks_cluster.this.name
-  addon_name   = "kube-proxy"
+  cluster_name      = aws_eks_cluster.this.name
+  addon_name        = "kube-proxy"
+  resolve_conflicts = "OVERWRITE"
 }
 
 resource "aws_eks_addon" "vpc_cni" {
   count = var.enable_core_addons ? 1 : 0
   
-  cluster_name = aws_eks_cluster.this.name
-  addon_name   = "vpc-cni"
+  cluster_name      = aws_eks_cluster.this.name
+  addon_name        = "vpc-cni"
+  resolve_conflicts = "OVERWRITE"
 }
 
 # Cluster Security Group
@@ -84,16 +85,4 @@ resource "aws_security_group_rule" "cluster_ingress_https" {
   protocol          = "tcp"
   cidr_blocks       = ["0.0.0.0/0"]
   description       = "Allow HTTPS access to cluster API server"
-}
-
-# Only create this rule if node_security_group_id is provided
-resource "aws_security_group_rule" "cluster_nodes_inbound" {
-  count                    = var.node_security_group_id != null ? 1 : 0
-  description              = "Allow cluster control plane to communicate with worker nodes"
-  security_group_id        = aws_security_group.cluster.id
-  type                     = "ingress"
-  from_port                = 443
-  to_port                  = 443
-  protocol                 = "tcp"
-  source_security_group_id = var.node_security_group_id
 }
