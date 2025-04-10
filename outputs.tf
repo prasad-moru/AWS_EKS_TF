@@ -36,9 +36,36 @@ output "cluster_certificate_authority_data" {
   sensitive   = true
 }
 
+# Node Group Outputs
 output "node_group_name" {
   description = "The name of the EKS node group"
-  value       = module.eks.node_group_name
+  value       = module.node_group.node_group_name
+}
+
+output "node_group_arn" {
+  description = "The ARN of the EKS node group"
+  value       = module.node_group.node_group_arn
+}
+
+# IAM Outputs
+output "cluster_role_arn" {
+  description = "ARN of IAM role for EKS cluster"
+  value       = aws_iam_role.cluster.arn
+}
+
+output "node_role_arn" {
+  description = "ARN of IAM role for EKS nodes"
+  value       = aws_iam_role.node.arn
+}
+
+output "oidc_provider_arn" {
+  description = "ARN of the OIDC provider"
+  value       = aws_iam_openid_connect_provider.eks.arn
+}
+
+output "oidc_provider_url" {
+  description = "URL of the OIDC provider"
+  value       = aws_iam_openid_connect_provider.eks.url
 }
 
 # EBS CSI Driver Outputs

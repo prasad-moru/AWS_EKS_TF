@@ -34,6 +34,8 @@ resource "aws_eks_addon" "coredns" {
   
   cluster_name = aws_eks_cluster.this.name
   addon_name   = "coredns"
+  addon_version = "v1.11.4-eksbuild.2" 
+  
 }
 
 resource "aws_eks_addon" "kube_proxy" {
@@ -84,7 +86,9 @@ resource "aws_security_group_rule" "cluster_ingress_https" {
   description       = "Allow HTTPS access to cluster API server"
 }
 
+# Only create this rule if node_security_group_id is provided
 resource "aws_security_group_rule" "cluster_nodes_inbound" {
+  count                    = var.node_security_group_id != null ? 1 : 0
   description              = "Allow cluster control plane to communicate with worker nodes"
   security_group_id        = aws_security_group.cluster.id
   type                     = "ingress"

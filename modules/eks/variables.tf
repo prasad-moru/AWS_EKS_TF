@@ -32,6 +32,7 @@ variable "public_subnet_ids" {
 variable "node_security_group_id" {
   description = "ID of the node security group"
   type        = string
+  default     = null  # Make it optional to break circular dependency
 }
 
 variable "enable_core_addons" {

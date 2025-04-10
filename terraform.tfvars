@@ -1,5 +1,5 @@
-aws_access_key = "place your access key here"
-aws_secret_key = "place your secretes here"
+aws_access_key = " "
+aws_secret_key = " "
 
 region                   = "us-east-1"
 availability_zones_count = 2
