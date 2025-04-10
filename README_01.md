@@ -4,19 +4,57 @@ This repository contains Terraform code for deploying a production-ready Amazon 
 
 ## Architecture Overview
 
-![AWS EKS Architecture](architecture-diagram.png)
-
 The infrastructure is built using a modular approach with the following components:
 
-- **VPC**: Custom VPC with public and private subnets across multiple availability zones
-- **EKS Control Plane**: Managed Kubernetes control plane
-- **Node Groups**: Auto-scaling EC2 instances in private subnets
-- **IAM Roles**: Properly configured with least privilege permissions
-- **ECR**: Elastic Container Registry for storing container images
-- **ALB Ingress Controller**: For managing Application Load Balancers
-- **EBS CSI Driver**: For persistent storage with Amazon EBS
-- **VPC CNI**: For pod networking
-- **Security Groups & NACLs**: For network security
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                                                                     │
+│                               AWS VPC                               │
+│  ┌─────────────┐   ┌─────────────┐   ┌─────────────┐   ┌─────────┐  │
+│  │             │   │             │   │             │   │         │  │
+│  │ Public      │   │ Public      │   │ Private     │   │ Private │  │
+│  │ Subnet (AZ1)│   │ Subnet (AZ2)│   │ Subnet (AZ1)│   │ Subnet  │  │
+│  │             │   │             │   │             │   │ (AZ2)   │  │
+│  └─────────────┘   └─────────────┘   └─────────────┘   └─────────┘  │
+│         │                 │                 │               │       │
+│         │                 │                 │               │       │
+│         ▼                 ▼                 │               │       │
+│  ┌─────────────────────────────┐            │               │       │
+│  │                             │            │               │       │
+│  │      Internet Gateway       │            │               │       │
+│  │                             │            │               │       │
+│  └─────────────┬───────────────┘            │               │       │
+│                │                            │               │       │
+│                ▼                            │               │       │
+│  ┌─────────────────────────────┐            │               │       │
+│  │                             │            │               │       │
+│  │        NAT Gateway          │            │               │       │
+│  │                             │            │               │       │
+│  └─────────────┬───────────────┘            │               │       │
+│                │                            │               │       │
+│                └────────────────────────────┼───────────────┘       │
+│                                             │                       │
+│                                             ▼                       │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │                                                               │  │
+│  │                     EKS Cluster                               │  │
+│  │                                                               │  │
+│  │   ┌─────────────────────────┐      ┌────────────────────────┐ │  │
+│  │   │                         │      │                        │ │  │
+│  │   │  Control Plane          │      │  Node Group            │ │  │
+│  │   │                         │      │  (in private subnets)  │ │  │
+│  │   └─────────────────────────┘      └────────────────────────┘ │  │
+│  │                                                               │  │
+│  │   ┌─────────────────────────┐      ┌────────────────────────┐ │  │
+│  │   │                         │      │                        │ │  │
+│  │   │  EBS CSI Driver         │      │  ALB Ingress Controller│ │  │
+│  │   │                         │      │                        │ │  │
+│  │   └─────────────────────────┘      └────────────────────────┘ │  │
+│  │                                                               │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
 ## Project Structure
 
@@ -43,22 +81,10 @@ The infrastructure is built using a modular approach with the following componen
 │   │   ├── main.tf
 │   │   ├── outputs.tf
 │   │   └── variables.tf
-│   ├── alb-ingress/         # ALB Ingress Controller module
-│   │   ├── main.tf
-│   │   ├── outputs.tf
-│   │   └── variables.tf
-│   └── ecr/                 # ECR module
+│   └── alb-ingress/         # ALB Ingress Controller module
 │       ├── main.tf
 │       ├── outputs.tf
-│       ├── variables.tf
-│       └── README.md
-├── kubernetes-workloads/    # Example Kubernetes manifests
-│   ├── nginx-deployment.yaml
-│   ├── nginx-ingress.yaml
-│   ├── nginx-service.yaml
-│   └── ecr-example-deployment.yaml
-└── scripts/                 # Helper scripts
-    └── deploy-to-ecr.sh     # Script for building and pushing to ECR
+│       └── variables.tf
 ```
 
 ## Module Overview
@@ -103,16 +129,6 @@ Key components:
 - IngressClass configuration
 - Optional WAF and Shield integration
 
-### ECR Module
-
-Creates Amazon Elastic Container Registry (ECR) repositories and configures the necessary permissions for your EKS cluster to access them.
-
-Key components:
-- Multiple ECR repositories with configurable settings
-- Image scanning and lifecycle policies
-- IAM permissions for EKS nodes to pull images
-- Repository policies for access control
-
 ## Configuration Details
 
 ### VPC Configuration
@@ -146,12 +162,6 @@ Key components:
   - Desired: 2 (configurable via var.eks_node_desired_size)
   - Min: 1 (configurable via var.eks_node_min_size)
   - Max: 4 (configurable via var.eks_node_max_size)
-
-### ECR Configuration
-- **Repository Names**: ["app", "nginx", "backend", "frontend"] (configurable via var.ecr_repository_names)
-- **Image Tag Mutability**: "MUTABLE" (configurable via var.ecr_image_tag_mutability)
-- **Scan on Push**: true (configurable via var.ecr_scan_on_push)
-- **Lifecycle Policy**: Enabled, keeps last 30 images (configurable)
 
 ### Security Groups
 
@@ -199,7 +209,6 @@ Key components:
 │  │ - AmazonEC2ContainerRegistryReadOnly                   │   │
 │  │ - AmazonSSMManagedInstanceCore                         │   │
 │  │ - CloudWatchAgentServerPolicy (optional)               │   │
-│  │ - ECR Read-Only or Full Access Policy                  │   │
 │  └─────────────────────────────────────────────────────────┘   │
 │                                                                 │
 │  EBS CSI Driver Role                                            │
@@ -225,7 +234,6 @@ Key components:
 - AWS CLI configured with appropriate credentials
 - Terraform v1.1.0 or newer
 - kubectl installed locally (for cluster access)
-- Docker installed locally (for building container images)
 
 ### Deployment Steps
 
@@ -240,7 +248,7 @@ Key components:
    terraform init
    ```
 
-3. Create a `terraform.tfvars` file with your specific values:
+3. Create a `terraform.tfvars` file with your specific .values:
    ```hcl
    aws_access_key = "your-access-key"
    aws_secret_key = "your-secret-key"
@@ -265,24 +273,6 @@ Key components:
    kubectl get nodes
    ```
 
-7. Build and push images to ECR:
-   ```bash
-   # Authenticate Docker to ECR
-   aws ecr get-login-password --region <region> | docker login --username AWS --password-stdin <account-id>.dkr.ecr.<region>.amazonaws.com
-   
-   # Build and push your images
-   docker build -t <account-id>.dkr.ecr.<region>.amazonaws.com/app:latest ./app
-   docker push <account-id>.dkr.ecr.<region>.amazonaws.com/app:latest
-   
-   # Or use the provided script
-   ./scripts/deploy-to-ecr.sh
-   ```
-
-8. Deploy your applications to Kubernetes:
-   ```bash
-   kubectl apply -f kubernetes-workloads/ecr-example-deployment.yaml
-   ```
-
 ## Resource Tagging Strategy
 
 All resources are tagged with the following default tags:
@@ -302,8 +292,6 @@ This infrastructure follows AWS security best practices:
 3. **API Server**: Allows configurable public/private endpoint access
 4. **Node Security**: Nodes deployed in private subnets with proper security groups
 5. **Service Account Access**: Uses OIDC provider for fine-grained pod-level permissions
-6. **Container Registry**: ECR configured with image scanning and lifecycle policies
-7. **Access Control**: Restricted ECR access for production environments
 
 ## Maintenance and Operations
 
@@ -324,14 +312,6 @@ To scale the node group:
    - `eks_node_max_size`
 2. Run `terraform plan` and `terraform apply`
 
-### Working with ECR
-
-To manage images in ECR:
-
-1. Use the provided script in `scripts/deploy-to-ecr.sh`
-2. Update `terraform.tfvars` to change repository configurations
-3. For production, consider setting `ecr_image_tag_mutability = "IMMUTABLE"`
-
 ## Troubleshooting
 
 Common issues and their solutions:
@@ -347,11 +327,6 @@ Common issues and their solutions:
 3. **ALB Ingress Controller issues**:
    - Ensure subnet tagging is correct
    - Verify the IAM role has proper permissions
-
-4. **Container images not pulling from ECR**:
-   - Check node IAM role has proper ECR permissions
-   - Verify ECR repository policy is configured correctly
-   - Ensure image URL is correctly formatted in pod spec
 
 ## Contributing
 
