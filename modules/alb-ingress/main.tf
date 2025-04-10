@@ -24,7 +24,8 @@ resource "aws_iam_role" "aws_lb_controller" {
   tags = merge(var.tags, { Name = "${var.cluster_name}-aws-lb-controller" })
 }
 
-# IAM Policy for AWS Load Balancer Controller
+# Update in modules/alb-ingress/main.tf
+
 resource "aws_iam_policy" "aws_lb_controller" {
   name        = "${var.cluster_name}-aws-lb-controller-policy"
   description = "Policy for AWS Load Balancer Controller"
@@ -177,36 +178,14 @@ resource "aws_iam_policy" "aws_lb_controller" {
         ]
         Resource = "*"
       },
+      # IMPORTANT CHANGE: This removes the condition for AddTags permission
       {
         Effect = "Allow"
         Action = [
           "elasticloadbalancing:AddTags",
           "elasticloadbalancing:RemoveTags"
         ]
-        Resource = [
-          "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*",
-          "arn:aws:elasticloadbalancing:*:*:loadbalancer/net/*/*",
-          "arn:aws:elasticloadbalancing:*:*:loadbalancer/app/*/*"
-        ]
-        Condition = {
-          Null = {
-            "aws:RequestTag/elbv2.k8s.aws/cluster": "true",
-            "aws:ResourceTag/elbv2.k8s.aws/cluster": "false"
-          }
-        }
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "elasticloadbalancing:AddTags",
-          "elasticloadbalancing:RemoveTags"
-        ]
-        Resource = [
-          "arn:aws:elasticloadbalancing:*:*:listener/net/*/*/*",
-          "arn:aws:elasticloadbalancing:*:*:listener/app/*/*/*",
-          "arn:aws:elasticloadbalancing:*:*:listener-rule/net/*/*/*",
-          "arn:aws:elasticloadbalancing:*:*:listener-rule/app/*/*/*"
-        ]
+        Resource = "*"  # Allow for all elasticloadbalancing resources
       },
       {
         Effect = "Allow"
