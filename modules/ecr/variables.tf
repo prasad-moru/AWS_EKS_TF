@@ -58,3 +58,9 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "enable_ecr_repository_policy" {
+  description = "Whether to enable ECR repository policy for node access"
+  type        = bool
+  default     = false
+}

@@ -48,9 +48,9 @@ resource "aws_ecr_lifecycle_policy" "this" {
 
 # Repository policy - allow EKS node role access
 resource "aws_ecr_repository_policy" "this" {
-  for_each = var.node_role_arn != null ? toset(var.repository_names) : []
+  count = var.enable_ecr_repository_policy && var.node_role_arn != "" ? length(var.repository_names) : 0
 
-  repository = aws_ecr_repository.this[each.key].name
+  repository = aws_ecr_repository.this[var.repository_names[count.index]].name
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [

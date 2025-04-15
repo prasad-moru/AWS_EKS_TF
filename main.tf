@@ -314,12 +314,13 @@ resource "aws_eks_node_group" "this" {
 module "ecr" {
   source = "./modules/ecr"
   
-  repository_names     = var.ecr_repository_names
-  image_tag_mutability = var.ecr_image_tag_mutability
-  scan_on_push         = var.ecr_scan_on_push
-  enable_lifecycle_policy = var.ecr_enable_lifecycle_policy
-  max_image_count      = var.ecr_max_image_count
-  node_role_arn        = aws_iam_role.node.arn
+  repository_names           = var.ecr_repository_names
+  image_tag_mutability       = var.ecr_image_tag_mutability
+  scan_on_push               = var.ecr_scan_on_push
+  enable_lifecycle_policy    = var.ecr_enable_lifecycle_policy
+  max_image_count            = var.ecr_max_image_count
+  node_role_arn              = aws_iam_role.node.arn
+  enable_ecr_repository_policy = true  # Set this to true when you want to enable the policy
   
   tags = merge(
     local.eks_tags,
