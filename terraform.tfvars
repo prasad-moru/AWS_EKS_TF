@@ -1,5 +1,5 @@
-aws_access_key = " place your access key"
-aws_secret_key = " place your secrete key"
+aws_access_key = "acess key"
+aws_secret_key = "secret key"
 
 region                   = "us-east-1"
 availability_zones_count = 2
@@ -11,9 +11,9 @@ subnet_cidr_bits = 8
 
 eks_version           = "1.29"
 eks_node_instance_types = ["t3.medium"]
-eks_node_desired_size = 2
+eks_node_desired_size = 4
 eks_node_min_size     = 1
-eks_node_max_size     = 4
+eks_node_max_size     = 7
 eks_node_disk_size    = 20
 
 enable_alb_ingress = true

@@ -103,12 +103,3 @@ output "ecr_repository_arns" {
   description = "ARNs of the created ECR repositories"
   value       = module.ecr.repository_arns
 }
-
-output "ecr_push_commands" {
-  description = "Commands to authenticate Docker to ECR and push images"
-  value = {
-    authenticate = "aws ecr get-login-password --region ${var.region} | docker login --username AWS --password-stdin ${data.aws_caller_identity.current.account_id}.dkr.ecr.${var.region}.amazonaws.com"
-    for repo in var.ecr_repository_names : 
-      "push_${repo}" => "docker push ${module.ecr.repository_urls[repo]}:latest"
-  }
-}
