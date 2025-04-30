@@ -1,4 +1,4 @@
-aws_access_key = "acess key"
+aws_access_key = "access key"
 aws_secret_key = "secret key"
 
 region                   = "us-east-1"

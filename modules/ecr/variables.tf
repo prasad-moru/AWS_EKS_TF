@@ -64,3 +64,9 @@ variable "enable_ecr_repository_policy" {
   type        = bool
   default     = false
 }
+
+variable "create_repository_policy" {
+  description = "Whether to create ECR repository policy"
+  type        = bool
+  default     = false
+}

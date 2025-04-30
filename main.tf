@@ -321,6 +321,7 @@ module "ecr" {
   max_image_count            = var.ecr_max_image_count
   node_role_arn              = aws_iam_role.node.arn
   enable_ecr_repository_policy = true  # Set this to true when you want to enable the policy
+  create_repository_policy   = true
   
   tags = merge(
     local.eks_tags,
