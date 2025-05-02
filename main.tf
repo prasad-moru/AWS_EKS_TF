@@ -320,11 +320,12 @@ module "ecr" {
   enable_lifecycle_policy    = var.ecr_enable_lifecycle_policy
   max_image_count            = var.ecr_max_image_count
   node_role_arn              = aws_iam_role.node.arn
+  enable_ecr_repository_policy = false  # Set to false for initial deployment
+  create_repository_policy   = false    # Set to false for initial deployment
+  
   depends_on = [
     aws_iam_role.node
   ]
-  enable_ecr_repository_policy = true  # Set this to true when you want to enable the policy
-  create_repository_policy   = true
   
   tags = merge(
     local.eks_tags,
@@ -333,7 +334,6 @@ module "ecr" {
     }
   )
 }
-
 # Additional policy for ECR access
 resource "aws_iam_role_policy_attachment" "node_AmazonECR_FullAccess" {
   count      = var.ecr_full_access_from_nodes ? 1 : 0
@@ -343,28 +343,28 @@ resource "aws_iam_role_policy_attachment" "node_AmazonECR_FullAccess" {
 
 # If you want more restricted ECR access instead of full access,
 # you can use this custom policy instead
+# If you want more restricted ECR access instead of full access,
+# you can use this custom policy instead
 resource "aws_iam_policy" "ecr_read_only" {
   count       = var.ecr_full_access_from_nodes ? 0 : 1
   name        = "${local.node_group_name}-ecr-read-only"
   description = "Allows EKS nodes to pull images from ECR"
 
-policy = var.node_role_arn != "" ? jsonencode({
-  Version = "2012-10-17"
-  Statement = [
-    {
-      Sid    = "AllowPullFromEKS"
-      Effect = "Allow"
-      Principal = {
-        AWS = var.node_role_arn
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetAuthorizationToken"
+        ]
+        Resource = "*"
       }
-      Action = [
-        "ecr:GetDownloadUrlForLayer",
-        "ecr:BatchGetImage",
-        "ecr:BatchCheckLayerAvailability"
-      ]
-    }
-  ]
-}) : null
+    ]
+  })
 }
 
 resource "aws_iam_role_policy_attachment" "node_ecr_read_only" {
