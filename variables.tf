@@ -158,7 +158,3 @@ variable "ecr_full_access_from_nodes" {
   default     = false
 }
 
-variable "node_role_arn" {
-  description = "ARN of the EKS worker node IAM role that needs access to ECR"
-  type        = string
-}

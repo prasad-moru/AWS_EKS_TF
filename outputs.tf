@@ -92,18 +92,3 @@ output "configure_kubectl" {
 }
 
 # Add these at the end of your outputs.tf file
-
-# ECR Outputs
-output "ecr_repository_urls" {
-  description = "URLs of the created ECR repositories"
-  value       = module.ecr.repository_urls
-}
-
-output "ecr_repository_arns" {
-  description = "ARNs of the created ECR repositories"
-  value       = module.ecr.repository_arns
-}
-
-output "node_role_arn_debug" {
-  value = var.node_role_arn
-}
