@@ -140,21 +140,3 @@ variable "ecr_scan_on_push" {
   default     = true
 }
 
-variable "ecr_enable_lifecycle_policy" {
-  description = "Enable lifecycle policy for repositories"
-  type        = bool
-  default     = true
-}
-
-variable "ecr_max_image_count" {
-  description = "Maximum number of images to keep in each repository"
-  type        = number
-  default     = 30
-}
-
-variable "ecr_full_access_from_nodes" {
-  description = "Grant full ECR access to node groups (not recommended for production)"
-  type        = bool
-  default     = false
-}
-

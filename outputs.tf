@@ -91,4 +91,3 @@ output "configure_kubectl" {
   value       = "aws eks update-kubeconfig --name ${module.eks.cluster_name} --region ${var.region}"
 }
 
-# Add these at the end of your outputs.tf file
