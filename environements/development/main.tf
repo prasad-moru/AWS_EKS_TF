@@ -101,7 +101,7 @@ resource "aws_iam_role_policy_attachment" "node_CloudWatchAgentServerPolicy" {
 
 # Module: VPC
 module "vpc" {
-  source = "./modules/vpc"
+  source = "../../modules/vpc"
 
   name                     = local.name
   cidr                     = var.vpc_cidr
@@ -152,7 +152,7 @@ resource "aws_security_group_rule" "nodes_outbound" {
 
 # Module: EKS - using pre-created IAM roles and security group
 module "eks" {
-  source = "./modules/eks"
+  source = "../../modules/eks"
   
   depends_on = [
     module.vpc,
@@ -310,7 +310,7 @@ resource "aws_eks_node_group" "this" {
 
 # Module: EBS CSI Driver - now using the OIDC provider we just created
 module "ebs_csi" {
-  source = "./modules/ebs-csi"
+  source = "../../modules/ebs-csi"
   
   depends_on = [module.eks, aws_iam_openid_connect_provider.eks, aws_eks_node_group.this]
 
@@ -321,7 +321,7 @@ module "ebs_csi" {
 
 # Module: ALB Ingress Controller - now using the OIDC provider we just created
 module "alb_ingress" {
-  source = "./modules/alb-ingress"
+  source = "../../modules/alb-ingress"
   count  = var.enable_alb_ingress ? 1 : 0
   
   depends_on = [module.eks, aws_iam_openid_connect_provider.eks, aws_eks_node_group.this]

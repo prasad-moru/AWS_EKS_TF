@@ -68,7 +68,6 @@ resource "aws_internet_gateway" "this" {
 
 # NAT Elastic IP
 resource "aws_eip" "nat" {
-  vpc = true
 
   tags = merge(
     var.tags,

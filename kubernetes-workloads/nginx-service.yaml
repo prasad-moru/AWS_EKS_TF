@@ -1,15 +1,12 @@
-# nginx-service.yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: nginx-service
-  labels:
-    app: nginx
+  name: learn-with-eks-service
 spec:
-  ports:
-    - port: 80
-      targetPort: 80
-      protocol: TCP
-  type: NodePort
   selector:
-    app: nginx
+    app: learn-with-eks
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: ClusterIP
