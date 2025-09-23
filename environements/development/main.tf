@@ -331,3 +331,13 @@ module "alb_ingress" {
   oidc_provider_arn       = aws_iam_openid_connect_provider.eks.arn
   oidc_provider_url       = aws_iam_openid_connect_provider.eks.url
 }
+
+module "ecr" {
+  source = "../../modules/ecr"
+
+  name = "developemnt-registry"
+  tags = {
+    Environment = "development"
+    Project     = "eks-demo"
+  }
+}

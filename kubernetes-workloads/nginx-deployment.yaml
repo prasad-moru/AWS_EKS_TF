@@ -16,6 +16,6 @@ spec:
     spec:
       containers:
       - name: learn-with-eks
-        image: 614520203046.dkr.ecr.us-east-1.amazonaws.com/learn_with_eks:1.0.0
+        image: 614520203046.dkr.ecr.us-east-1.amazonaws.com/developemnt-registry:latest
         ports:
         - containerPort: 80
