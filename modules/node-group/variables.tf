@@ -31,19 +31,19 @@ variable "cluster_security_group_id" {
 variable "desired_size" {
   description = "Desired number of worker nodes"
   type        = number
-  default     = 2
+  default     = 3
 }
 
 variable "min_size" {
   description = "Minimum number of worker nodes"
   type        = number
-  default     = 1
+  default     = 2
 }
 
 variable "max_size" {
   description = "Maximum number of worker nodes"
   type        = number
-  default     = 4
+  default     = 5
 }
 
 variable "disk_size" {
@@ -55,7 +55,7 @@ variable "disk_size" {
 variable "instance_types" {
   description = "List of instance types for the node group"
   type        = list(string)
-  default     = ["t3.medium"]
+  default     = ["c5.xlarge"]
 }
 
 variable "tags" {
