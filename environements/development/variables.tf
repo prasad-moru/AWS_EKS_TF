@@ -19,7 +19,7 @@ variable "region" {
 variable "project" {
   description = "Project name used as prefix for all resources"
   type        = string
-  default     = "TFEKSWorkshop"
+  default     = "StoreApp-Project"
 }
 
 variable "environment" {
@@ -55,7 +55,7 @@ variable "subnet_cidr_bits" {
 variable "eks_version" {
   description = "Kubernetes version to use for the EKS cluster"
   type        = string
-  default     = "1.29"
+  default     = "1.31"
 }
 
 variable "eks_node_instance_types" {
@@ -100,7 +100,7 @@ variable "default_tags" {
   description = "Default tags to apply to all resources"
   type        = map(string)
   default = {
-    "Project"     = "TFEKSWorkshop"
+    "Project"     = "StoreApp-Project"
     "Environment" = "Development"
     "Terraform"   = "true"
     "Owner"       = "DevOps"

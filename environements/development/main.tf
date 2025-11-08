@@ -92,6 +92,38 @@ resource "aws_iam_role_policy_attachment" "node_AmazonSSMManagedInstanceCore" {
   role       = aws_iam_role.node.name
 }
 
+# Custom ECR access policy for nodes - ADD THIS
+resource "aws_iam_policy" "node_ecr_access" {
+  name        = "${local.node_group_name}-ecr-access"
+  description = "Enhanced ECR access for EKS nodes"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "ecr:DescribeRepositories",
+          "ecr:ListImages",
+          "ecr:DescribeImages"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+
+  tags = local.eks_tags
+}
+
+resource "aws_iam_role_policy_attachment" "node_ecr_access" {
+  policy_arn = aws_iam_policy.node_ecr_access.arn
+  role       = aws_iam_role.node.name
+}
+
 # Optional CloudWatch monitoring policy
 resource "aws_iam_role_policy_attachment" "node_CloudWatchAgentServerPolicy" {
   count      = var.enable_cloudwatch_agent ? 1 : 0
@@ -103,12 +135,12 @@ resource "aws_iam_role_policy_attachment" "node_CloudWatchAgentServerPolicy" {
 module "vpc" {
   source = "../../modules/vpc"
 
-  name                     = local.name
-  cidr                     = var.vpc_cidr
-  azs                      = local.azs
-  subnet_cidr_bits         = var.subnet_cidr_bits
-  cluster_name             = local.cluster_name
-  tags                     = local.vpc_tags
+  name             = local.name
+  cidr             = var.vpc_cidr
+  azs              = local.azs
+  subnet_cidr_bits = var.subnet_cidr_bits
+  cluster_name     = local.cluster_name
+  tags             = local.vpc_tags
 }
 
 # Create node security group first
@@ -120,7 +152,7 @@ resource "aws_security_group" "nodes" {
   tags = merge(
     local.eks_tags,
     {
-      Name = "${local.cluster_name}-node-sg"
+      Name                                          = "${local.cluster_name}-node-sg"
       "kubernetes.io/cluster/${local.cluster_name}" = "owned"
     }
   )
@@ -153,7 +185,7 @@ resource "aws_security_group_rule" "nodes_outbound" {
 # Module: EKS - using pre-created IAM roles and security group
 module "eks" {
   source = "../../modules/eks"
-  
+
   depends_on = [
     module.vpc,
     aws_iam_role_policy_attachment.cluster_AmazonEKSClusterPolicy,
@@ -161,15 +193,15 @@ module "eks" {
     aws_security_group.nodes
   ]
 
-  cluster_name            = local.cluster_name
-  cluster_version         = var.eks_version
-  vpc_id                  = module.vpc.vpc_id
-  private_subnet_ids      = module.vpc.private_subnet_ids
-  public_subnet_ids       = module.vpc.public_subnet_ids
-  cluster_role_arn        = aws_iam_role.cluster.arn
-  node_security_group_id  = aws_security_group.nodes.id
-  enable_core_addons      = false
-  tags                    = local.eks_tags
+  cluster_name           = local.cluster_name
+  cluster_version        = var.eks_version
+  vpc_id                 = module.vpc.vpc_id
+  private_subnet_ids     = module.vpc.private_subnet_ids
+  public_subnet_ids      = module.vpc.public_subnet_ids
+  cluster_role_arn       = aws_iam_role.cluster.arn
+  node_security_group_id = aws_security_group.nodes.id
+  enable_core_addons     = false
+  tags                   = local.eks_tags
 }
 
 # Now create OIDC provider based on the cluster
@@ -187,7 +219,7 @@ resource "aws_iam_openid_connect_provider" "eks" {
 }
 
 data "tls_certificate" "eks" {
-  url = module.eks.cluster_identity_oidc_issuer
+  url        = module.eks.cluster_identity_oidc_issuer
   depends_on = [module.eks]
 }
 
@@ -222,7 +254,7 @@ resource "aws_launch_template" "eks_nodes" {
   # Use custom block device mappings to improve performance
   block_device_mappings {
     device_name = "/dev/xvda"
-    
+
     ebs {
       volume_size           = var.eks_node_disk_size
       volume_type           = "gp3"
@@ -311,33 +343,44 @@ resource "aws_eks_node_group" "this" {
 # Module: EBS CSI Driver - now using the OIDC provider we just created
 module "ebs_csi" {
   source = "../../modules/ebs-csi"
-  
+
   depends_on = [module.eks, aws_iam_openid_connect_provider.eks, aws_eks_node_group.this]
 
-  cluster_name            = module.eks.cluster_name
-  oidc_provider_arn       = aws_iam_openid_connect_provider.eks.arn
-  oidc_provider_url       = aws_iam_openid_connect_provider.eks.url
+  cluster_name      = module.eks.cluster_name
+  oidc_provider_arn = aws_iam_openid_connect_provider.eks.arn
+  oidc_provider_url = aws_iam_openid_connect_provider.eks.url
 }
 
 # Module: ALB Ingress Controller - now using the OIDC provider we just created
 module "alb_ingress" {
   source = "../../modules/alb-ingress"
   count  = var.enable_alb_ingress ? 1 : 0
-  
+
   depends_on = [module.eks, aws_iam_openid_connect_provider.eks, aws_eks_node_group.this]
 
-  cluster_name            = module.eks.cluster_name
-  vpc_id                  = module.vpc.vpc_id
-  oidc_provider_arn       = aws_iam_openid_connect_provider.eks.arn
-  oidc_provider_url       = aws_iam_openid_connect_provider.eks.url
+  cluster_name      = module.eks.cluster_name
+  vpc_id            = module.vpc.vpc_id
+  oidc_provider_arn = aws_iam_openid_connect_provider.eks.arn
+  oidc_provider_url = aws_iam_openid_connect_provider.eks.url
 }
 
 module "ecr" {
   source = "../../modules/ecr"
 
-  name = "developemnt-registry"
-  tags = {
-    Environment = "development"
-    Project     = "eks-demo"
-  }
+  name                    = "${local.name}-registry" # Fixed typo, using local variable
+  image_tag_mutability    = "MUTABLE"                # MUTABLE for development
+  scan_on_push            = true
+  enable_lifecycle_policy = true
+  image_count_to_keep     = 30
+  node_role_arn           = aws_iam_role.node.arn # Pass node role ARN
+
+  tags = merge(
+    local.eks_tags,
+    {
+      Environment = "development"
+      Name        = "${local.name}-ecr"
+    }
+  )
+
+  depends_on = [aws_iam_role.node]
 }

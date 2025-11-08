@@ -90,3 +90,24 @@ output "configure_kubectl" {
   description = "Command to configure kubectl to connect to the EKS cluster"
   value       = "aws eks update-kubeconfig --name ${module.eks.cluster_name} --region ${var.region}"
 }
+
+# ECR Outputs
+output "ecr_repository_url" {
+  description = "URL of the ECR repository"
+  value       = module.ecr.repository_url
+}
+
+output "ecr_repository_arn" {
+  description = "ARN of the ECR repository"
+  value       = module.ecr.repository_arn
+}
+
+output "ecr_repository_name" {
+  description = "Name of the ECR repository"
+  value       = module.ecr.repository_name
+}
+
+output "ecr_registry_id" {
+  description = "ECR Registry ID"
+  value       = module.ecr.registry_id
+}
