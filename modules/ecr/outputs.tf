@@ -17,3 +17,4 @@ output "registry_id" {
   description = "Registry ID where the repository was created"
   value       = aws_ecr_repository.ecr_repo.registry_id
 }
+

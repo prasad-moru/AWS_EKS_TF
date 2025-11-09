@@ -36,31 +36,3 @@ resource "aws_ecr_lifecycle_policy" "ecr_policy" {
     ]
   })
 }
-
-# Repository policy to allow EKS nodes to pull images
-resource "aws_ecr_repository_policy" "ecr_policy" {
-  count      = var.node_role_arn != null ? 1 : 0
-  repository = aws_ecr_repository.ecr_repo.name
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid    = "AllowEKSNodesToPull"
-        Effect = "Allow"
-        Principal = {
-          AWS = var.node_role_arn
-        }
-        Action = [
-          "ecr:GetDownloadUrlForLayer",
-          "ecr:BatchGetImage",
-          "ecr:BatchCheckLayerAvailability",
-          "ecr:GetAuthorizationToken",
-          "ecr:DescribeRepositories",
-          "ecr:ListImages",
-          "ecr:DescribeImages"
-        ]
-      }
-    ]
-  })
-}

@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dev-eks-app
+  labels:
+    app: dev-eks-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: dev-eks-app
+  template:
+    metadata:
+      labels:
+        app: dev-eks-app
+    spec:
+      containers:
+        - name: dev-eks-container
+          image: 591234613960.dkr.ecr.us-east-1.amazonaws.com/dev-eks-dev-registry:latest
+          ports:
+            - containerPort: 8080
+          imagePullPolicy: Always
+      imagePullSecrets:
+        - name: ecr-registry-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dev-eks-service
+spec:
+  selector:
+    app: dev-eks-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: LoadBalancer

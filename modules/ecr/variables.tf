@@ -44,7 +44,6 @@ variable "image_count_to_keep" {
 }
 
 variable "node_role_arn" {
-  description = "ARN of the EKS node IAM role (optional, for repository policy)"
+  description = "ARN of the EKS node IAM role for repository policy"
   type        = string
-  default     = null
 }
